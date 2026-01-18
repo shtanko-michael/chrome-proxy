@@ -12,8 +12,14 @@ chrome.storage.sync.get(config, (saved) => {
     config = saved;
     proxyConfig = parseProxyUrl(config.proxyUrl);
 });
-chrome.storage.local.get({ excludedDomains: [] }, (saved) => {
+chrome.storage.local.get({ excludedDomains: [], enabled: false }, (saved) => {
     excludedDomains = saved.excludedDomains || [];
+    enabled = !!saved.enabled;
+    if (enabled) {
+        enableProxy();
+    } else {
+        disableProxy();
+    }
 });
 
 function ensureContextMenu() {
@@ -101,6 +107,7 @@ chrome.action.onClicked.addListener(() => {
         return;
     }
     enabled = !enabled;
+    chrome.storage.local.set({ enabled });
     enabled ? enableProxy() : disableProxy();
 });
 
@@ -168,9 +175,15 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
         }
     }
 
-    if (areaName === "local" && changes.excludedDomains) {
-        excludedDomains = changes.excludedDomains.newValue || [];
-        if (enabled) enableProxy();
+    if (areaName === "local") {
+        if (changes.excludedDomains) {
+            excludedDomains = changes.excludedDomains.newValue || [];
+            if (enabled) enableProxy();
+        }
+        if (changes.enabled) {
+            enabled = !!changes.enabled.newValue;
+            enabled ? enableProxy() : disableProxy();
+        }
     }
 });
 
