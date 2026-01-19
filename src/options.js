@@ -8,12 +8,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         chrome.storage.sync.get(DEFAULTS, resolve);
     });
     const localCfg = await new Promise(resolve => {
-        chrome.storage.local.get({ excludedDomains: [] }, resolve);
+        chrome.storage.local.get({ allowedDomains: [] }, resolve);
     });
 
     document.getElementById("proxyUrl").value = cfg.proxyUrl || "";
 
-    renderDomainList(localCfg.excludedDomains || []);
+    renderDomainList(localCfg.allowedDomains || []);
 
     document.getElementById("addDomain").onclick = addDomain;
     document.getElementById("domainInput").addEventListener("keydown", (event) => {
@@ -71,13 +71,13 @@ async function addDomain() {
     }
 
     const current = await new Promise(resolve => {
-        chrome.storage.local.get({ excludedDomains: [] }, resolve);
+        chrome.storage.local.get({ allowedDomains: [] }, resolve);
     });
-    const list = new Set(current.excludedDomains || []);
+    const list = new Set(current.allowedDomains || []);
     list.add(normalized);
 
     await new Promise(resolve => {
-        chrome.storage.local.set({ excludedDomains: Array.from(list) }, resolve);
+        chrome.storage.local.set({ allowedDomains: Array.from(list) }, resolve);
     });
 
     input.value = "";
@@ -87,12 +87,12 @@ async function addDomain() {
 
 async function removeDomain(domain) {
     const current = await new Promise(resolve => {
-        chrome.storage.local.get({ excludedDomains: [] }, resolve);
+        chrome.storage.local.get({ allowedDomains: [] }, resolve);
     });
-    const list = (current.excludedDomains || []).filter(item => item !== domain);
+    const list = (current.allowedDomains || []).filter(item => item !== domain);
 
     await new Promise(resolve => {
-        chrome.storage.local.set({ excludedDomains: list }, resolve);
+        chrome.storage.local.set({ allowedDomains: list }, resolve);
     });
 
     renderDomainList(list);
