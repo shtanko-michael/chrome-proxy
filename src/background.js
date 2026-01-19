@@ -2,7 +2,7 @@ let enabled = false;
 let config = {
     proxyUrl: ""
 };
-let excludedDomains = [];
+let allowedDomains = [];
 const CONTEXT_MENU_ID = "toggle-domain-exclusion";
 const HAS_CONTEXT_MENUS = !!(chrome.contextMenus && chrome.contextMenus.create);
 const HAS_TABS = !!(chrome.tabs && chrome.tabs.query);
@@ -12,8 +12,8 @@ chrome.storage.sync.get(config, (saved) => {
     config = saved;
     proxyConfig = parseProxyUrl(config.proxyUrl);
 });
-chrome.storage.local.get({ excludedDomains: [], enabled: false }, (saved) => {
-    excludedDomains = saved.excludedDomains || [];
+chrome.storage.local.get({ allowedDomains: [], enabled: false }, (saved) => {
+    allowedDomains = saved.allowedDomains || [];
     enabled = !!saved.enabled;
     if (enabled) {
         enableProxy();
@@ -27,7 +27,7 @@ function ensureContextMenu() {
     chrome.contextMenus.removeAll(() => {
         chrome.contextMenus.create({
             id: CONTEXT_MENU_ID,
-            title: "Добавить текущий домен в исключение",
+            title: "Добавить текущий домен в список прокси",
             contexts: ["action"]
         });
     });
@@ -50,10 +50,10 @@ function getActiveTabDomain(callback) {
 
 function updateContextMenuTitle(domain) {
     if (!HAS_CONTEXT_MENUS) return;
-    const inList = domain && excludedDomains.includes(domain);
+    const inList = domain && allowedDomains.includes(domain);
     const title = inList
-        ? "Удалить домен из исключений"
-        : "Добавить текущий домен в исключение";
+        ? "Удалить домен из списка прокси"
+        : "Добавить текущий домен в список прокси";
     chrome.contextMenus.update(CONTEXT_MENU_ID, { title });
 }
 
@@ -63,8 +63,29 @@ function refreshMenuForActiveTab() {
     });
 }
 
-function buildBypassList() {
-    return Array.from(new Set(excludedDomains));
+function buildPacScript(parsed) {
+    const domains = Array.from(new Set(allowedDomains.map((item) => String(item).toLowerCase())));
+    const proxyMap = {
+        socks5: "SOCKS5",
+        socks5h: "SOCKS5",
+        http: "PROXY",
+        https: "HTTPS"
+    };
+    const proxyDirective = `${proxyMap[parsed.scheme]} ${parsed.host}:${parsed.port}`;
+    const listJson = JSON.stringify(domains);
+    return `
+function FindProxyForURL(url, host) {
+    var list = ${listJson};
+    host = (host || "").toLowerCase();
+    for (var i = 0; i < list.length; i++) {
+        var d = list[i];
+        if (host === d || host.endsWith("." + d)) {
+            return "${proxyDirective}";
+        }
+    }
+    return "DIRECT";
+}
+`.trim();
 }
 
 function enableProxy() {
@@ -75,14 +96,9 @@ function enableProxy() {
     }
     chrome.proxy.settings.set({
         value: {
-            mode: "fixed_servers",
-            rules: {
-                singleProxy: {
-                    scheme: parsed.scheme,
-                    host: parsed.host,
-                    port: parsed.port
-                },
-                bypassList: buildBypassList()
+            mode: "pac_script",
+            pacScript: {
+                data: buildPacScript(parsed)
             }
         },
         scope: "regular"
@@ -129,14 +145,14 @@ if (HAS_CONTEXT_MENUS) {
         if (info.menuItemId !== CONTEXT_MENU_ID) return;
         getActiveTabDomain((domain) => {
             if (!domain) return;
-            chrome.storage.local.get({ excludedDomains: [] }, (saved) => {
-                const current = saved.excludedDomains || [];
+            chrome.storage.local.get({ allowedDomains: [] }, (saved) => {
+                const current = saved.allowedDomains || [];
                 const exists = current.includes(domain);
                 const next = exists
                     ? current.filter((item) => item !== domain)
                     : [...current, domain];
-                chrome.storage.local.set({ excludedDomains: next }, () => {
-                    excludedDomains = next;
+                chrome.storage.local.set({ allowedDomains: next }, () => {
+                    allowedDomains = next;
                     updateContextMenuTitle(domain);
                 });
             });
@@ -176,8 +192,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     }
 
     if (areaName === "local") {
-        if (changes.excludedDomains) {
-            excludedDomains = changes.excludedDomains.newValue || [];
+        if (changes.allowedDomains) {
+            allowedDomains = changes.allowedDomains.newValue || [];
             if (enabled) enableProxy();
         }
         if (changes.enabled) {
