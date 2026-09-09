@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SOCKS5 Proxy</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <div class="heading">
+      <div><h1>SOCKS5 Proxy</h1><p id="status">Загрузка…</p></div>
+      <span id="indicator" aria-hidden="true"></span>
+    </div>
+    <div class="switch-row">
+      <div><strong>Использовать прокси</strong><span>Быстрое включение и выключение</span></div>
+      <label class="switch" for="proxyToggle">
+        <input id="proxyToggle" type="checkbox" disabled>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="field-label">Доступные серверы</div>
+    <div id="proxyList" class="proxy-list"></div>
+    <p id="hint" class="hint"></p>
+    <button id="settings" type="button">Настроить серверы</button>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

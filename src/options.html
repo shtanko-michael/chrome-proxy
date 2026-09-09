@@ -1,265 +1,66 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
   <meta charset="utf-8">
   <title>SOCKS5 Proxy — Настройки</title>
   <style>
-    :root {
-      color-scheme: light;
-      --bg: #f6f7fb;
-      --card: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --accent: #3b82f6;
-      --accent-hover: #2f6fde;
-      --border: #e5e7eb;
-      --success-bg: #d1fae5;
-      --success-text: #065f46;
-      --error-bg: #fee2e2;
-      --error-text: #991b1b;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      padding: 24px;
-      background: var(--bg);
-      color: var(--text);
-    }
-
-    .container {
-      max-width: 520px;
-      margin: 0 auto;
-    }
-
-    h2 {
-      margin: 0 0 16px;
-      font-size: 20px;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      font-size: 14px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 12px;
-    }
-
-    label {
-      display: block;
-      margin: 10px 0;
-      font-weight: 600;
-    }
-
-    label span {
-      display: block;
-      font-weight: 500;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    input,
-    select {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-sizing: border-box;
-      background: #fff;
-    }
-
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      align-items: end;
-    }
-
-    button {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 12px;
-      width: 100%;
-      margin-top: 12px;
-      cursor: pointer;
-      font-size: 15px;
-      border-radius: 8px;
-    }
-
-    button:hover {
-      background: var(--accent-hover);
-    }
-
-    .secondary {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-      margin-top: 0;
-      width: auto;
-      padding: 8px 12px;
-    }
-
-    .secondary:hover {
-      background: #f3f4f6;
-    }
-
-    .row-button {
-      display: flex;
-      align-items: flex-end;
-    }
-
-    .secondary.small {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-
-    .help-row {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 8px;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.35);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-
-    .modal {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      max-width: 520px;
-      width: calc(100% - 32px);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    }
-
-    .modal h3 {
-      margin: 0 0 8px;
-      font-size: 16px;
-    }
-
-    .modal p {
-      margin: 6px 0;
-      font-size: 14px;
-      color: var(--text);
-    }
-
-    .modal code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 12px;
-      background: #f3f4f6;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-
-    #status {
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 14px;
-    }
-
-    .success {
-      background: var(--success-bg);
-      color: var(--success-text);
-    }
-
-    .error {
-      background: var(--error-bg);
-      color: var(--error-text);
-    }
-
-    .list {
-      list-style: none;
-      padding: 0;
-      margin: 12px 0 0;
-    }
-
-    .list li {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .list .domain {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 13px;
-    }
-
-    .muted {
-      color: var(--muted);
-      font-size: 13px;
-    }
+    :root { color-scheme: light; --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --accent:#3b82f6; --border:#e5e7eb; --danger:#dc2626; }
+    body { margin:0; padding:24px; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); }
+    .container { max-width:640px; margin:0 auto; }
+    h1 { margin:0 0 16px; font-size:22px; }
+    .card { margin-bottom:16px; padding:16px; border:1px solid var(--border); border-radius:12px; background:var(--card); box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .section-title { margin-bottom:12px; color:var(--muted); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+    label { display:block; margin:10px 0; font-weight:600; }
+    label span { display:block; margin-bottom:6px; color:var(--muted); font-size:13px; font-weight:500; }
+    input { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; }
+    .form-row { display:grid; grid-template-columns:1fr 2fr; gap:12px; }
+    button { padding:9px 12px; border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; font:inherit; }
+    button:hover { filter:brightness(.95); }
+    button.secondary { border:1px solid var(--border); background:#fff; color:var(--text); }
+    button.danger { border:1px solid #fecaca; background:#fff; color:var(--danger); }
+    .actions { display:flex; gap:8px; margin-top:12px; }
+    .list { list-style:none; margin:14px 0 0; padding:0; }
+    .list li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid var(--border); }
+    .server-info { min-width:0; }
+    .server-name { display:block; font-weight:650; }
+    .server-url,.domain { color:var(--muted); font:12px ui-monospace,SFMono-Regular,Menlo,monospace; overflow-wrap:anywhere; }
+    .item-actions { display:flex; flex:none; gap:6px; }
+    .item-actions button { padding:6px 9px; font-size:12px; }
+    .muted { color:var(--muted); font-size:13px; }
+    #status { min-height:20px; margin:12px 0; padding:0 2px; font-size:14px; }
+    #status.success { color:#047857; } #status.error { color:#b91c1c; }
+    @media (max-width:540px) { .form-row { grid-template-columns:1fr; } }
   </style>
 </head>
-
 <body>
-  <div class="container">
-    <h2>Настройки прокси</h2>
-
-    <div class="card">
-      <div class="section-title">Строка подключения</div>
-      <label>
-        <span>SOCKS5 URL</span>
-        <input id="proxyUrl" type="text" placeholder="scheme://host:port">
-      </label>
-      <div class="help-row">
-        <button id="openReadme" class="secondary small" type="button">README</button>
+  <main class="container">
+    <h1>Настройки прокси</h1>
+    <section class="card">
+      <div class="section-title">Серверы</div>
+      <div class="form-row">
+        <label><span>Название</span><input id="proxyName" type="text" placeholder="Германия"></label>
+        <label><span>Адрес прокси</span><input id="proxyUrl" type="text" placeholder="socks5://host:1080"></label>
       </div>
-    </div>
+      <div class="actions">
+        <button id="saveProxy" type="button">Добавить сервер</button>
+        <button id="cancelEdit" class="secondary" type="button" hidden>Отмена</button>
+      </div>
+      <ul id="proxyList" class="list"></ul>
+      <details class="muted">
+        <summary>Формат адреса</summary>
+        <p>Используйте <code>socks5://host:port</code>. Также сохранена поддержка <code>socks5h</code>, <code>http</code> и <code>https</code>.</p>
+      </details>
+    </section>
 
-    <div class="card">
+    <section class="card">
       <div class="section-title">Домены с прокси</div>
-      <p class="muted">Сайты из списка будут идти через прокси.</p>
-      <div>
-        <label>
-          <span>Добавить домен в список</span>
-          <input id="domainInput" type="text" placeholder="example.com">
-        </label>
-        <div>
-          <button id="addDomain" class="secondary">Добавить</button>
-        </div>
-      </div>
+      <p class="muted">Если список пуст, через прокси идет весь трафик. Если домены добавлены — только они.</p>
+      <label><span>Добавить домен</span><input id="domainInput" type="text" placeholder="example.com"></label>
+      <button id="addDomain" class="secondary" type="button">Добавить</button>
       <ul id="domainList" class="list"></ul>
-    </div>
-
-    <button id="save">💾 Сохранить настройки</button>
-    <div id="status"></div>
-  </div>
-
+    </section>
+    <div id="status" role="status"></div>
+  </main>
   <script src="options.js"></script>
-
-  <div id="readmeModal" class="modal-overlay" role="dialog" aria-modal="true">
-    <div class="modal">
-      <h3>Краткий гайд по серверу</h3>
-      <p>1) Разверните SOCKS5‑прокси (например, Dante) на VPS.</p>
-      <p>2) Откройте порт в firewall (например, <code>1080/tcp</code>).</p>
-      <p>3) Убедитесь, что сервис запущен: <code>systemctl status danted</code>.</p>
-      <p>4) Проверьте доступность: <code>curl --socks5 host:port https://ipinfo.io/ip</code>.</p>
-      <p>5) Вставьте строку подключения вида <code>socks5://host:port</code> в настройки.</p>
-      <div class="help-row">
-        <button id="closeReadme" class="secondary small" type="button">Закрыть</button>
-      </div>
-    </div>
-  </div>
 </body>
-
 </html>

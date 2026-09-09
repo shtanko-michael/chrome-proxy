@@ -1,26 +1,58 @@
+let proxies = [];
 let enabled = false;
-let config = {
-    proxyUrl: ""
-};
+let activeProxyId = "";
 let allowedDomains = [];
+
 const CONTEXT_MENU_ID = "toggle-domain-exclusion";
 const HAS_CONTEXT_MENUS = !!(chrome.contextMenus && chrome.contextMenus.create);
 const HAS_TABS = !!(chrome.tabs && chrome.tabs.query);
-let proxyConfig = null;
+const ready = initialize();
 
-chrome.storage.sync.get(config, (saved) => {
-    config = saved;
-    proxyConfig = parseProxyUrl(config.proxyUrl);
-});
-chrome.storage.local.get({ allowedDomains: [], enabled: false }, (saved) => {
-    allowedDomains = saved.allowedDomains || [];
-    enabled = !!saved.enabled;
-    if (enabled) {
-        enableProxy();
-    } else {
-        disableProxy();
+async function initialize() {
+    const [syncConfig, localConfig] = await Promise.all([
+        chrome.storage.sync.get({ proxies: [], proxyUrl: "" }),
+        chrome.storage.local.get({ allowedDomains: [], enabled: false, activeProxyId: "" })
+    ]);
+    proxies = normalizeProxies(syncConfig.proxies);
+    allowedDomains = localConfig.allowedDomains || [];
+    enabled = !!localConfig.enabled;
+    activeProxyId = localConfig.activeProxyId || "";
+
+    if (!proxies.length && parseProxyUrl(syncConfig.proxyUrl)) {
+        const migrated = { id: createId(), name: "Основной сервер", url: syncConfig.proxyUrl };
+        proxies = [migrated];
+        activeProxyId = migrated.id;
+        await Promise.all([
+            chrome.storage.sync.set({ proxies }),
+            chrome.storage.local.set({ activeProxyId })
+        ]);
     }
-});
+
+    if (enabled && getActiveProxy()) {
+        await enableProxy();
+    } else {
+        if (enabled) {
+            enabled = false;
+            await chrome.storage.local.set({ enabled: false });
+        }
+        await disableProxy();
+    }
+}
+
+function createId() {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeProxies(value) {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item) =>
+        item && typeof item.id === "string" && typeof item.name === "string" && parseProxyUrl(item.url)
+    );
+}
+
+function getActiveProxy() {
+    return proxies.find((proxy) => proxy.id === activeProxyId) || null;
+}
 
 function ensureContextMenu() {
     if (!HAS_CONTEXT_MENUS) return;
@@ -40,8 +72,7 @@ function getActiveTabDomain(callback) {
         const url = tabs && tabs[0] && tabs[0].url;
         if (!url) return callback("");
         try {
-            const parsed = new URL(url);
-            callback(parsed.hostname || "");
+            callback(new URL(url).hostname || "");
         } catch (e) {
             callback("");
         }
@@ -51,156 +82,145 @@ function getActiveTabDomain(callback) {
 function updateContextMenuTitle(domain) {
     if (!HAS_CONTEXT_MENUS) return;
     const inList = domain && allowedDomains.includes(domain);
-    const title = inList
-        ? "Удалить домен из списка прокси"
-        : "Добавить текущий домен в список прокси";
-    chrome.contextMenus.update(CONTEXT_MENU_ID, { title });
+    chrome.contextMenus.update(CONTEXT_MENU_ID, {
+        title: inList ? "Удалить домен из списка прокси" : "Добавить текущий домен в список прокси"
+    });
 }
 
 function refreshMenuForActiveTab() {
-    getActiveTabDomain((domain) => {
-        updateContextMenuTitle(domain);
-    });
+    getActiveTabDomain(updateContextMenuTitle);
 }
 
 function buildPacScript(parsed) {
     const domains = Array.from(new Set(allowedDomains.map((item) => String(item).toLowerCase())));
-    const proxyMap = {
-        socks5: "SOCKS5",
-        socks5h: "SOCKS5",
-        http: "PROXY",
-        https: "HTTPS"
-    };
+    const proxyMap = { socks5: "SOCKS5", socks5h: "SOCKS5", http: "PROXY", https: "HTTPS" };
     const proxyDirective = `${proxyMap[parsed.scheme]} ${parsed.host}:${parsed.port}`;
-    const listJson = JSON.stringify(domains);
     return `
 function FindProxyForURL(url, host) {
-    var list = ${listJson};
+    var list = ${JSON.stringify(domains)};
+    if (list.length === 0) return "${proxyDirective}";
     host = (host || "").toLowerCase();
     for (var i = 0; i < list.length; i++) {
         var d = list[i];
-        if (host === d || host.endsWith("." + d)) {
-            return "${proxyDirective}";
-        }
+        if (host === d || host.endsWith("." + d)) return "${proxyDirective}";
     }
     return "DIRECT";
 }
 `.trim();
 }
 
-function enableProxy() {
-    const parsed = proxyConfig || parseProxyUrl(config.proxyUrl);
+async function enableProxy() {
+    const proxy = getActiveProxy();
+    const parsed = proxy && parseProxyUrl(proxy.url);
     if (!parsed) {
-        disableProxy();
-        return;
+        enabled = false;
+        await chrome.storage.local.set({ enabled: false });
+        return disableProxy();
     }
-    chrome.proxy.settings.set({
-        value: {
-            mode: "pac_script",
-            pacScript: {
-                data: buildPacScript(parsed)
-            }
-        },
+    await chrome.proxy.settings.set({
+        value: { mode: "pac_script", pacScript: { data: buildPacScript(parsed) } },
         scope: "regular"
-    }, () => {
-        chrome.action.setBadgeText({ text: "ON" });
-        chrome.action.setBadgeBackgroundColor({ color: "#00aa00" });
     });
+    await chrome.action.setBadgeText({ text: "ON" });
+    await chrome.action.setBadgeBackgroundColor({ color: "#00aa00" });
+    await chrome.action.setTitle({ title: `Прокси: ${proxy.name}` });
 }
 
-function disableProxy() {
-    chrome.proxy.settings.set({
-        value: { mode: "direct" },
-        scope: "regular"
-    }, () => {
-        chrome.action.setBadgeText({ text: "" });
-    });
+async function disableProxy() {
+    await chrome.proxy.settings.set({ value: { mode: "direct" }, scope: "regular" });
+    await chrome.action.setBadgeText({ text: "" });
+    await chrome.action.setTitle({ title: "SOCKS5 Proxy — выключен" });
 }
 
-chrome.action.onClicked.addListener(() => {
-    if (!config.proxyUrl || !proxyConfig) {
-        chrome.runtime.openOptionsPage();
-        return;
-    }
-    enabled = !enabled;
-    chrome.storage.local.set({ enabled });
-    enabled ? enableProxy() : disableProxy();
-});
-
-chrome.runtime.onInstalled.addListener(() => {
-    ensureContextMenu();
-});
-chrome.runtime.onStartup.addListener(() => {
-    ensureContextMenu();
-});
+chrome.runtime.onInstalled.addListener(ensureContextMenu);
+chrome.runtime.onStartup.addListener(ensureContextMenu);
 
 if (HAS_CONTEXT_MENUS) {
-    if (chrome.contextMenus.onShown) {
-        chrome.contextMenus.onShown.addListener(() => {
-            refreshMenuForActiveTab();
-        });
-    }
-
+    if (chrome.contextMenus.onShown) chrome.contextMenus.onShown.addListener(refreshMenuForActiveTab);
     chrome.contextMenus.onClicked.addListener((info) => {
         if (info.menuItemId !== CONTEXT_MENU_ID) return;
-        getActiveTabDomain((domain) => {
+        getActiveTabDomain(async (domain) => {
             if (!domain) return;
-            chrome.storage.local.get({ allowedDomains: [] }, (saved) => {
-                const current = saved.allowedDomains || [];
-                const exists = current.includes(domain);
-                const next = exists
-                    ? current.filter((item) => item !== domain)
-                    : [...current, domain];
-                chrome.storage.local.set({ allowedDomains: next }, () => {
-                    allowedDomains = next;
-                    updateContextMenuTitle(domain);
-                });
-            });
+            const current = (await chrome.storage.local.get({ allowedDomains: [] })).allowedDomains || [];
+            const next = current.includes(domain)
+                ? current.filter((item) => item !== domain)
+                : [...current, domain];
+            await chrome.storage.local.set({ allowedDomains: next });
+            updateContextMenuTitle(domain);
         });
     });
 }
 
 if (HAS_TABS) {
-    chrome.tabs.onActivated.addListener(() => {
-        refreshMenuForActiveTab();
-    });
+    chrome.tabs.onActivated.addListener(refreshMenuForActiveTab);
     chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-        if (changeInfo.status === "complete") {
-            refreshMenuForActiveTab();
-        }
+        if (changeInfo.status === "complete") refreshMenuForActiveTab();
     });
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message && message.action === "reloadProxy") {
-        if (enabled) enableProxy();
-        sendResponse({ ok: true });
+    if (!message) return false;
+    if (message.action === "setActiveProxy") {
+        ready.then(async () => {
+            const proxy = proxies.find((item) => item.id === message.proxyId);
+            if (!proxy) throw new Error("Сервер не найден");
+            activeProxyId = proxy.id;
+            await chrome.storage.local.set({ activeProxyId });
+            sendResponse({ ok: true, proxy });
+        }).catch((error) => sendResponse({ ok: false, error: error.message }));
+        return true;
     }
+    if (message.action === "selectProxy") {
+        ready.then(async () => {
+            const proxy = proxies.find((item) => item.id === message.proxyId);
+            if (!proxy) throw new Error("Сервер не найден");
+            activeProxyId = proxy.id;
+            enabled = true;
+            await chrome.storage.local.set({ activeProxyId, enabled: true });
+            await enableProxy();
+            sendResponse({ ok: true, proxy });
+        }).catch((error) => sendResponse({ ok: false, error: error.message }));
+        return true;
+    }
+    if (message.action === "disableProxy") {
+        ready.then(async () => {
+            enabled = false;
+            await chrome.storage.local.set({ enabled: false });
+            await disableProxy();
+            sendResponse({ ok: true });
+        }).catch((error) => sendResponse({ ok: false, error: error.message }));
+        return true;
+    }
+    if (message.action === "reloadProxy") {
+        ready.then(async () => {
+            if (enabled) await enableProxy();
+            sendResponse({ ok: true });
+        }).catch((error) => sendResponse({ ok: false, error: error.message }));
+        return true;
+    }
+    return false;
 });
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "sync") {
-        const updated = {};
-        for (const key of ["proxyUrl"]) {
-            if (changes[key]) updated[key] = changes[key].newValue;
+    ready.then(async () => {
+        if (areaName === "sync" && changes.proxies) {
+            proxies = normalizeProxies(changes.proxies.newValue);
+            if (!getActiveProxy()) {
+                activeProxyId = "";
+                enabled = false;
+                await chrome.storage.local.set({ activeProxyId: "", enabled: false });
+                await disableProxy();
+            } else if (enabled) await enableProxy();
         }
-        if (Object.keys(updated).length > 0) {
-            config = { ...config, ...updated };
-            proxyConfig = parseProxyUrl(config.proxyUrl);
-            if (enabled) enableProxy();
+        if (areaName === "local") {
+            if (changes.allowedDomains) {
+                allowedDomains = changes.allowedDomains.newValue || [];
+                if (enabled) await enableProxy();
+            }
+            if (changes.activeProxyId) activeProxyId = changes.activeProxyId.newValue || "";
+            if (changes.enabled) enabled = !!changes.enabled.newValue;
         }
-    }
-
-    if (areaName === "local") {
-        if (changes.allowedDomains) {
-            allowedDomains = changes.allowedDomains.newValue || [];
-            if (enabled) enableProxy();
-        }
-        if (changes.enabled) {
-            enabled = !!changes.enabled.newValue;
-            enabled ? enableProxy() : disableProxy();
-        }
-    }
+    });
 });
 
 function parseProxyUrl(value) {
@@ -211,7 +231,7 @@ function parseProxyUrl(value) {
         if (!["socks5", "socks5h", "http", "https"].includes(scheme)) return null;
         const host = parsed.hostname;
         const port = parsed.port ? parseInt(parsed.port, 10) : NaN;
-        if (!host || !port) return null;
+        if (!host || !port || port < 1 || port > 65535) return null;
         return { scheme, host, port };
     } catch (e) {
         return null;
