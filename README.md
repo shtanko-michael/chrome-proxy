@@ -3,6 +3,10 @@
 Simple Chrome extension that manages multiple named proxy servers
 (SOCKS5/HTTP/HTTPS) and lets you exclude domains that should bypass them.
 
+## Interface
+
+![SOCKS5 Proxy popup — dark theme](docs/images/popup-dark-mock.png)
+
 ## Features
 - Add, edit and remove multiple named proxy servers.
 - Switch servers with one click in the popup and turn the proxy off with a dedicated toggle.
