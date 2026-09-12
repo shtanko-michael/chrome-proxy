@@ -1,6 +1,6 @@
 {
     "name": "SOCKS5 Proxy",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "manifest_version": 3,
     "permissions": [
         "proxy",
@@ -15,7 +15,7 @@
         "service_worker": "background.js"
     },
     "action": {
-        "default_title": "SOCKS5 Proxy",
+        "default_title": "Маршрутизация трафика",
         "default_popup": "popup.html",
         "default_icon": {
             "16": "favicon.png",

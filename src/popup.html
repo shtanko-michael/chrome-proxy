@@ -3,26 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SOCKS5 Proxy</title>
+  <title>Маршрутизация трафика</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <main>
     <div class="heading">
-      <div><h1>SOCKS5 Proxy</h1><p id="status">Загрузка…</p></div>
-      <span id="indicator" aria-hidden="true"></span>
+      <svg class="heading-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="6" cy="6" r="2.5"></circle>
+        <circle cx="18" cy="12" r="2.5"></circle>
+        <circle cx="7" cy="18" r="2.5"></circle>
+        <path d="M8 7.5 15.8 10.7M7 8.5v7M9.2 17.2l6.6-3.8"></path>
+      </svg>
+      <h1>Маршрутизация трафика</h1>
     </div>
+    <p id="status">Загрузка…</p>
     <div class="switch-row">
-      <div><strong>Использовать прокси</strong><span>Быстрое включение и выключение</span></div>
+      <div><strong>Использовать маршрут</strong><span id="toggleState">Загрузка…</span></div>
       <label class="switch" for="proxyToggle">
         <input id="proxyToggle" type="checkbox" disabled>
         <span class="slider"></span>
       </label>
     </div>
-    <div class="field-label">Доступные серверы</div>
+    <div class="field-label">Маршруты</div>
     <div id="proxyList" class="proxy-list"></div>
     <p id="hint" class="hint"></p>
-    <button id="settings" type="button">Настроить серверы</button>
+    <div class="utility-actions">
+      <button id="exclusions" class="utility-row" type="button">
+        <span class="utility-icon" aria-hidden="true">☷</span>
+        <span id="exclusionsLabel">Исключения</span>
+        <span class="chevron" aria-hidden="true">›</span>
+      </button>
+      <button id="settings" class="utility-row" type="button">
+        <span class="utility-icon" aria-hidden="true">⚙</span>
+        <span>Настройки маршрутов</span>
+        <span class="chevron" aria-hidden="true">›</span>
+      </button>
+    </div>
   </main>
   <script src="popup.js"></script>
 </body>

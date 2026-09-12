@@ -128,13 +128,13 @@ async function enableProxy() {
     });
     await chrome.action.setBadgeText({ text: "ON" });
     await chrome.action.setBadgeBackgroundColor({ color: "#00aa00" });
-    await chrome.action.setTitle({ title: `Прокси: ${proxy.name}` });
+    await chrome.action.setTitle({ title: `Маршрут: ${proxy.name}` });
 }
 
 async function disableProxy() {
     await chrome.proxy.settings.set({ value: { mode: "direct" }, scope: "regular" });
     await chrome.action.setBadgeText({ text: "" });
-    await chrome.action.setTitle({ title: "SOCKS5 Proxy — выключен" });
+    await chrome.action.setTitle({ title: "Маршрутизация выключена" });
 }
 
 chrome.runtime.onInstalled.addListener(ensureContextMenu);
