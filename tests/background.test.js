@@ -10,7 +10,7 @@ function event() {
     return { listeners: [], addListener(listener) { this.listeners.push(listener); } };
 }
 
-async function enableProxy(allowedDomains) {
+async function enableProxy(excludedDomains) {
     const onMessage = event();
     let appliedConfig;
     const chrome = {
@@ -23,7 +23,7 @@ async function enableProxy(allowedDomains) {
                 set: async () => {}
             },
             local: {
-                get: async (defaults) => ({ ...defaults, allowedDomains, enabled: false, activeProxyId: "main" }),
+                get: async (defaults) => ({ ...defaults, excludedDomains, enabled: false, activeProxyId: "main" }),
                 set: async () => {}
             },
             onChanged: event()
@@ -61,13 +61,13 @@ function route(pacScript, host) {
     return vm.runInContext(`FindProxyForURL("https://${host}", "${host}")`, context);
 }
 
-test("an empty domain list proxies all traffic", async () => {
+test("an empty exclusion list proxies all traffic", async () => {
     const pacScript = await enableProxy([]);
     assert.equal(route(pacScript, "example.com"), "SOCKS5 127.0.0.1:1080");
 });
 
-test("a populated domain list proxies only matching domains", async () => {
+test("a populated exclusion list bypasses matching domains", async () => {
     const pacScript = await enableProxy(["example.com"]);
-    assert.equal(route(pacScript, "sub.example.com"), "SOCKS5 127.0.0.1:1080");
-    assert.equal(route(pacScript, "other.test"), "DIRECT");
+    assert.equal(route(pacScript, "sub.example.com"), "DIRECT");
+    assert.equal(route(pacScript, "other.test"), "SOCKS5 127.0.0.1:1080");
 });

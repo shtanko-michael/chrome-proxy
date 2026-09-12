@@ -1,6 +1,6 @@
 {
     "name": "SOCKS5 Proxy",
-    "version": "1.2.0",
+    "version": "1.4.0",
     "manifest_version": 3,
     "permissions": [
         "proxy",

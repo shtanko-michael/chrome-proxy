@@ -1,7 +1,7 @@
 let proxies = [];
 let enabled = false;
 let activeProxyId = "";
-let allowedDomains = [];
+let excludedDomains = [];
 
 const CONTEXT_MENU_ID = "toggle-domain-exclusion";
 const HAS_CONTEXT_MENUS = !!(chrome.contextMenus && chrome.contextMenus.create);
@@ -11,12 +11,18 @@ const ready = initialize();
 async function initialize() {
     const [syncConfig, localConfig] = await Promise.all([
         chrome.storage.sync.get({ proxies: [], proxyUrl: "" }),
-        chrome.storage.local.get({ allowedDomains: [], enabled: false, activeProxyId: "" })
+        chrome.storage.local.get({ excludedDomains: null, allowedDomains: [], enabled: false, activeProxyId: "" })
     ]);
     proxies = normalizeProxies(syncConfig.proxies);
-    allowedDomains = localConfig.allowedDomains || [];
+    excludedDomains = Array.isArray(localConfig.excludedDomains)
+        ? localConfig.excludedDomains
+        : (localConfig.allowedDomains || []);
     enabled = !!localConfig.enabled;
     activeProxyId = localConfig.activeProxyId || "";
+
+    if (!Array.isArray(localConfig.excludedDomains)) {
+        await chrome.storage.local.set({ excludedDomains });
+    }
 
     if (!proxies.length && parseProxyUrl(syncConfig.proxyUrl)) {
         const migrated = { id: createId(), name: "Основной сервер", url: syncConfig.proxyUrl };
@@ -59,7 +65,7 @@ function ensureContextMenu() {
     chrome.contextMenus.removeAll(() => {
         chrome.contextMenus.create({
             id: CONTEXT_MENU_ID,
-            title: "Добавить текущий домен в список прокси",
+            title: "Исключить текущий домен из прокси",
             contexts: ["action"]
         });
     });
@@ -81,9 +87,9 @@ function getActiveTabDomain(callback) {
 
 function updateContextMenuTitle(domain) {
     if (!HAS_CONTEXT_MENUS) return;
-    const inList = domain && allowedDomains.includes(domain);
+    const inList = domain && excludedDomains.includes(domain);
     chrome.contextMenus.update(CONTEXT_MENU_ID, {
-        title: inList ? "Удалить домен из списка прокси" : "Добавить текущий домен в список прокси"
+        title: inList ? "Убрать текущий домен из исключений прокси" : "Исключить текущий домен из прокси"
     });
 }
 
@@ -92,19 +98,18 @@ function refreshMenuForActiveTab() {
 }
 
 function buildPacScript(parsed) {
-    const domains = Array.from(new Set(allowedDomains.map((item) => String(item).toLowerCase())));
+    const domains = Array.from(new Set(excludedDomains.map((item) => String(item).toLowerCase())));
     const proxyMap = { socks5: "SOCKS5", socks5h: "SOCKS5", http: "PROXY", https: "HTTPS" };
     const proxyDirective = `${proxyMap[parsed.scheme]} ${parsed.host}:${parsed.port}`;
     return `
 function FindProxyForURL(url, host) {
     var list = ${JSON.stringify(domains)};
-    if (list.length === 0) return "${proxyDirective}";
     host = (host || "").toLowerCase();
     for (var i = 0; i < list.length; i++) {
         var d = list[i];
-        if (host === d || host.endsWith("." + d)) return "${proxyDirective}";
+        if (host === d || host.endsWith("." + d)) return "DIRECT";
     }
-    return "DIRECT";
+    return "${proxyDirective}";
 }
 `.trim();
 }
@@ -141,11 +146,11 @@ if (HAS_CONTEXT_MENUS) {
         if (info.menuItemId !== CONTEXT_MENU_ID) return;
         getActiveTabDomain(async (domain) => {
             if (!domain) return;
-            const current = (await chrome.storage.local.get({ allowedDomains: [] })).allowedDomains || [];
+            const current = (await chrome.storage.local.get({ excludedDomains: [] })).excludedDomains || [];
             const next = current.includes(domain)
                 ? current.filter((item) => item !== domain)
                 : [...current, domain];
-            await chrome.storage.local.set({ allowedDomains: next });
+            await chrome.storage.local.set({ excludedDomains: next });
             updateContextMenuTitle(domain);
         });
     });
@@ -213,8 +218,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
             } else if (enabled) await enableProxy();
         }
         if (areaName === "local") {
-            if (changes.allowedDomains) {
-                allowedDomains = changes.allowedDomains.newValue || [];
+            if (changes.excludedDomains) {
+                excludedDomains = changes.excludedDomains.newValue || [];
                 if (enabled) await enableProxy();
             }
             if (changes.activeProxyId) activeProxyId = changes.activeProxyId.newValue || "";

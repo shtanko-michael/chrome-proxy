@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>SOCKS5 Proxy — Настройки</title>
   <style>
-    :root { color-scheme: light; --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --accent:#3b82f6; --border:#e5e7eb; --danger:#dc2626; }
+    :root { color-scheme:light dark; --bg:#f6f7fb; --card:#fff; --input:#fff; --text:#1f2937; --muted:#6b7280; --accent:#3b82f6; --border:#e5e7eb; --danger:#dc2626; --danger-border:#fecaca; --success:#047857; --error:#b91c1c; }
     body { margin:0; padding:24px; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); }
     .container { max-width:640px; margin:0 auto; }
     h1 { margin:0 0 16px; font-size:22px; }
@@ -12,12 +12,12 @@
     .section-title { margin-bottom:12px; color:var(--muted); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
     label { display:block; margin:10px 0; font-weight:600; }
     label span { display:block; margin-bottom:6px; color:var(--muted); font-size:13px; font-weight:500; }
-    input { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; }
+    input { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--input); color:var(--text); }
     .form-row { display:grid; grid-template-columns:1fr 2fr; gap:12px; }
     button { padding:9px 12px; border:0; border-radius:8px; background:var(--accent); color:#fff; cursor:pointer; font:inherit; }
     button:hover { filter:brightness(.95); }
-    button.secondary { border:1px solid var(--border); background:#fff; color:var(--text); }
-    button.danger { border:1px solid #fecaca; background:#fff; color:var(--danger); }
+    button.secondary { border:1px solid var(--border); background:var(--input); color:var(--text); }
+    button.danger { border:1px solid var(--danger-border); background:var(--input); color:var(--danger); }
     .actions { display:flex; gap:8px; margin-top:12px; }
     .list { list-style:none; margin:14px 0 0; padding:0; }
     .list li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid var(--border); }
@@ -28,7 +28,12 @@
     .item-actions button { padding:6px 9px; font-size:12px; }
     .muted { color:var(--muted); font-size:13px; }
     #status { min-height:20px; margin:12px 0; padding:0 2px; font-size:14px; }
-    #status.success { color:#047857; } #status.error { color:#b91c1c; }
+    #status.success { color:var(--success); } #status.error { color:var(--error); }
+    @media (prefers-color-scheme:dark) {
+      :root { --bg:#0f172a; --card:#172033; --input:#111827; --text:#f1f5f9; --muted:#94a3b8; --accent:#2563eb; --border:#334155; --danger:#fca5a5; --danger-border:#7f1d1d; --success:#4ade80; --error:#fca5a5; }
+      .card { box-shadow:0 1px 3px rgba(0,0,0,.35); }
+      input:focus { outline:2px solid #3b82f6; outline-offset:1px; }
+    }
     @media (max-width:540px) { .form-row { grid-template-columns:1fr; } }
   </style>
 </head>
@@ -53,10 +58,10 @@
     </section>
 
     <section class="card">
-      <div class="section-title">Домены с прокси</div>
-      <p class="muted">Если список пуст, через прокси идет весь трафик. Если домены добавлены — только они.</p>
-      <label><span>Добавить домен</span><input id="domainInput" type="text" placeholder="example.com"></label>
-      <button id="addDomain" class="secondary" type="button">Добавить</button>
+      <div class="section-title">Исключения из прокси</div>
+      <p class="muted">Домены из списка всегда открываются напрямую. Через прокси идет весь остальной трафик.</p>
+      <label><span>Добавить домен в исключения</span><input id="domainInput" type="text" placeholder="example.com"></label>
+      <button id="addDomain" class="secondary" type="button">Добавить исключение</button>
       <ul id="domainList" class="list"></ul>
     </section>
     <div id="status" role="status"></div>

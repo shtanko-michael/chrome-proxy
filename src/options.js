@@ -6,11 +6,17 @@ document.addEventListener("DOMContentLoaded", initialize);
 async function initialize() {
     const [syncConfig, localConfig] = await Promise.all([
         chrome.storage.sync.get({ proxies: [] }),
-        chrome.storage.local.get({ allowedDomains: [] })
+        chrome.storage.local.get({ excludedDomains: null, allowedDomains: [] })
     ]);
     proxies = Array.isArray(syncConfig.proxies) ? syncConfig.proxies : [];
     renderProxyList();
-    renderDomainList(localConfig.allowedDomains || []);
+    const domains = Array.isArray(localConfig.excludedDomains)
+        ? localConfig.excludedDomains
+        : (localConfig.allowedDomains || []);
+    if (!Array.isArray(localConfig.excludedDomains)) {
+        await chrome.storage.local.set({ excludedDomains: domains });
+    }
+    renderDomainList(domains);
 
     document.getElementById("saveProxy").addEventListener("click", saveProxy);
     document.getElementById("cancelEdit").addEventListener("click", resetProxyForm);
@@ -102,18 +108,18 @@ async function addDomain() {
     const input = document.getElementById("domainInput");
     const normalized = normalizeDomain(input.value);
     if (!normalized) return showStatus("Введите корректный домен", "error");
-    const current = await chrome.storage.local.get({ allowedDomains: [] });
-    const domains = Array.from(new Set([...(current.allowedDomains || []), normalized]));
-    await chrome.storage.local.set({ allowedDomains: domains });
+    const current = await chrome.storage.local.get({ excludedDomains: [] });
+    const domains = Array.from(new Set([...(current.excludedDomains || []), normalized]));
+    await chrome.storage.local.set({ excludedDomains: domains });
     input.value = "";
     renderDomainList(domains);
     showStatus("Домен добавлен", "success");
 }
 
 async function removeDomain(domain) {
-    const current = await chrome.storage.local.get({ allowedDomains: [] });
-    const domains = (current.allowedDomains || []).filter((item) => item !== domain);
-    await chrome.storage.local.set({ allowedDomains: domains });
+    const current = await chrome.storage.local.get({ excludedDomains: [] });
+    const domains = (current.excludedDomains || []).filter((item) => item !== domain);
+    await chrome.storage.local.set({ excludedDomains: domains });
     renderDomainList(domains);
     showStatus("Домен удален", "success");
 }

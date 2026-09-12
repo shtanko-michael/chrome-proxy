@@ -1,21 +1,21 @@
 # Chrome Proxy Extension
 
 Simple Chrome extension that manages multiple named proxy servers
-(SOCKS5/HTTP/HTTPS) and lets you define the domains that should use them.
+(SOCKS5/HTTP/HTTPS) and lets you exclude domains that should bypass them.
 
 ## Features
 - Add, edit and remove multiple named proxy servers.
 - Switch servers with one click in the popup and turn the proxy off with a dedicated toggle.
 - Store the server list in sync storage.
-- Optionally limit proxying to an allowed domain list; an empty list proxies all traffic.
-- Context menu item to add/remove current domain.
+- Exclude selected domains from proxying; an empty list proxies all traffic.
+- Context menu item to add/remove the current domain from exclusions.
 
 ## How It Works
 - The background service worker reads the selected proxy and applies it via
   `chrome.proxy.settings`.
-- Allowed domains are stored in `chrome.storage.local` and used to build
-  a PAC script. With no domains configured, the selected proxy handles all traffic.
-- The options page lets you set the proxy URL and manage the domain list.
+- Excluded domains are stored in `chrome.storage.local` and used to build
+  a PAC script. These domains connect directly; the selected proxy handles all other traffic.
+- The options page lets you set the proxy URL and manage exclusions.
 
 ## Setup
 1. Open Chrome and go to `chrome://extensions`.
